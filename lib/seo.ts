@@ -1,8 +1,10 @@
 export function getBaseUrl(): string {
-  // Prefer explicit public base URL, fall back to existing production default
+  // Prefer explicit public base URL, fall back to production or development default
   return (
     process.env.NEXT_PUBLIC_BASE_URL ||
-    'http://localhost:3000'
+    (process.env.NODE_ENV === 'production' 
+      ? 'https://www.getmaxim.ai/bifrost/model-library'
+      : 'http://localhost:3000')
   );
 }
 

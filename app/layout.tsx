@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://getbifrost.ai/datasheet',
+    url: 'https://www.getmaxim.ai/bifrost/model-library',
     siteName: 'AI Model Library',
     title: 'AI Model Library - Explore Providers and Capabilities',
     description: 'Browse AI models across providers. Compare capabilities, context limits, and pricing details.',

@@ -113,10 +113,12 @@ The library supports browsing and filtering models by mode:
 Optional environment variable:
 
 ```env
-NEXT_PUBLIC_BASE_URL=https://your-domain.com
+NEXT_PUBLIC_BASE_URL=https://www.getmaxim.ai/bifrost/model-library
 ```
 
 Used for sitemap and structured data URLs.
+
+**Note**: When deploying to production, make sure to set this environment variable in your deployment platform (Vercel, Netlify, etc.).
 
 ## License
 

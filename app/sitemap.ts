@@ -2,7 +2,10 @@ import { MetadataRoute } from 'next';
 import { fetchAllModels, processModels, getAllProviders } from '@/lib/api';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
+    (process.env.NODE_ENV === 'production' 
+      ? 'https://www.getmaxim.ai/bifrost/model-library'
+      : 'http://localhost:3000');
   
   const modelsData = await fetchAllModels();
   const models = processModels(modelsData);
