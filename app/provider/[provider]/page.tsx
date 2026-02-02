@@ -1,4 +1,6 @@
 import { fetchAllModels, getModelsByProvider, getAllProviders, formatProviderName } from '@/lib/api';
+import { getModeDisplayName } from '@/lib/calculator';
+import { isProviderWhitelisted } from '@/config/providers';
 import ModelsTable from '@/components/ModelsTable';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import Pagination from '@/components/Pagination';
@@ -17,7 +19,7 @@ export async function generateStaticParams() {
   const modelsData = await fetchAllModels();
   // Use getAllProviders which already filters to only providers with valid models
   const providers = getAllProviders(modelsData);
-  
+
   return providers.map((provider) => ({
     provider: encodeURIComponent(provider),
   }));
@@ -37,17 +39,61 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   }
 
   const providerDisplayName = formatProviderName(decodedProvider);
-  const title = `${providerDisplayName} Models - AI Model Library`;
-  const description = `Browse all ${models.length} AI models from ${providerDisplayName}. Compare capabilities, context limits, and pricing details.`;
+  let title = `${providerDisplayName} Models - Bifrost AI Model Library`;
+  let description = `Browse all ${models.length} AI models from ${providerDisplayName}. Compare capabilities, context limits, and pricing details.`;
+
+  if (mode) {
+    const decodedMode = decodeURIComponent(mode);
+    const filteredModels = models.filter(m => m.data.mode === decodedMode);
+    const modeName = getModeDisplayName(decodedMode);
+    title = `${providerDisplayName} ${modeName} Models - Bifrost AI Model Library`;
+    description = `Browse ${filteredModels.length} ${modeName} models from ${providerDisplayName}. Also view other available models.`;
+  }
+
   const canonical = buildCanonicalUrl(`/provider/${encodeURIComponent(decodedProvider)}`, {
     mode: mode || undefined,
     page: page && page !== '1' ? page : undefined,
   });
 
+  // Determine if this page should be indexed
+  let shouldIndex = true;
+
+  if (mode) {
+    // If filtering by mode, only index pages that contain at least one matching model.
+    // We need to replicate the sorting logic to know what's on this page.
+    const decodedMode = decodeURIComponent(mode);
+    const matches = models.filter(m => m.data.mode === decodedMode);
+    const others = models.filter(m => m.data.mode !== decodedMode);
+    const displayModels = [...matches, ...others];
+
+    const PAGE_SIZE = 100;
+    const currentPage = Math.max(1, parseInt(page || '1', 10) || 1);
+    const startIdx = (currentPage - 1) * PAGE_SIZE;
+    const pageModels = displayModels.slice(startIdx, startIdx + PAGE_SIZE);
+
+    // Check if any model on this page matches the filter
+    const hasFilteredModels = pageModels.some(m => m.data.mode === decodedMode);
+    shouldIndex = hasFilteredModels;
+  } else {
+    // If no mode filter, index all pages (standard behavior) or limit to page 1 if desired.
+    // User request implies focusing on "filtered" logic. For "All", we generally assume all are valid.
+    // However, sticking to Page 1 for "All" is a safe default for sitemaps, 
+    // but here we are talking about indexing state.
+    // Let's index all pages for "All Models" view as they are all "current".
+    shouldIndex = true;
+  }
+
+  // Final check: Provider Whitelist
+  // Even if models match the mode, if the provider itself is not in our approved list,
+  // we do not index the page to avoid SEO bloat.
+  if (!isProviderWhitelisted(decodedProvider)) {
+    shouldIndex = false;
+  }
+
   return {
     title,
     description,
-    keywords: `${providerDisplayName}, AI models, model catalog, ${providerDisplayName} pricing`,
+    keywords: `${providerDisplayName}, AI models, model catalog, ${providerDisplayName} pricing${mode ? `, ${mode} models` : ''}`,
     alternates: {
       canonical,
     },
@@ -60,6 +106,10 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
       card: 'summary',
       title,
       description,
+    },
+    robots: {
+      index: shouldIndex,
+      follow: true,
     },
   };
 }
@@ -76,36 +126,47 @@ export default async function ProviderPage({ params, searchParams }: PageProps) 
     notFound();
   }
 
-  let models = providerModels;
+  let displayModels = [...providerModels];
+  let statsModels = [...providerModels];
+  let highlightMode: string | undefined;
 
   // Filter by mode if provided
   if (modeFilter) {
     const decodedMode = decodeURIComponent(modeFilter);
-    models = models.filter(model => model.data.mode === decodedMode);
+    highlightMode = decodedMode;
+
+    const matches = providerModels.filter(model => model.data.mode === decodedMode);
+    const others = providerModels.filter(model => model.data.mode !== decodedMode);
+
+    // Sort: matches first, then others
+    displayModels = [...matches, ...others];
+
+    // Stats focus on the filtered set to be relevant to the page title
+    statsModels = matches.length > 0 ? matches : providerModels;
   }
 
   // If filters/search produce 0 results, we should NOT 404.
 
   const PAGE_SIZE = 100;
   const currentPage = Math.max(1, parseInt(page || '1', 10) || 1);
-  const totalModels = models.length;
+  const totalModels = displayModels.length; // Total for pagination is FULL list
   const startIdx = (currentPage - 1) * PAGE_SIZE;
-  const pagedModels = models.slice(startIdx, startIdx + PAGE_SIZE);
+  const pagedModels = displayModels.slice(startIdx, startIdx + PAGE_SIZE);
 
-  // Group models by mode
-  const modelsByMode = models.reduce((acc, model) => {
+  // Group models by mode (using statsModels for relevant stats)
+  const modelsByMode = statsModels.reduce((acc, model) => {
     const mode = model.data.mode;
     if (!acc[mode]) {
       acc[mode] = [];
     }
     acc[mode].push(model);
     return acc;
-  }, {} as Record<string, typeof models>);
+  }, {} as Record<string, typeof statsModels>);
 
   // Calculate stats
   const modes = Object.keys(modelsByMode);
-  const inputCostModels = models.filter(m => m.data.input_cost_per_token);
-  const outputCostModels = models.filter(m => m.data.output_cost_per_token);
+  const inputCostModels = statsModels.filter(m => m.data.input_cost_per_token);
+  const outputCostModels = statsModels.filter(m => m.data.output_cost_per_token);
   const avgInputCost =
     inputCostModels.length > 0
       ? inputCostModels.reduce((sum, m) => sum + (m.data.input_cost_per_token || 0), 0) / inputCostModels.length
@@ -123,7 +184,7 @@ export default async function ProviderPage({ params, searchParams }: PageProps) 
     description: `AI models and pricing from ${formatProviderName(decodedProvider)}`,
     numberOfEmployees: {
       '@type': 'QuantitativeValue',
-      value: totalModels,
+      value: statsModels.length,
     },
   };
 
@@ -141,7 +202,7 @@ export default async function ProviderPage({ params, searchParams }: PageProps) 
             { label: formatProviderName(decodedProvider) },
           ]}
         />
-        
+
         {/* Header */}
         <div className="mb-8">
           {/* <div className="mb-4">
@@ -160,6 +221,7 @@ export default async function ProviderPage({ params, searchParams }: PageProps) 
           </h1>
           <p className="text-lg text-gray-600">
             Browse all {totalModels} AI models from {formatProviderName(decodedProvider)}
+            {modeFilter && ` (${statsModels.length} filtered)`}
           </p>
         </div>
 
@@ -168,9 +230,9 @@ export default async function ProviderPage({ params, searchParams }: PageProps) 
           <div className="border-t border-b border-gray-200 w-full">
             <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-gray-200">
               <div className="text-center py-4 md:py-5 px-6">
-                <div className="text-sm text-gray-500 uppercase tracking-wider font-medium font-mono">Total Models</div>
+                <div className="text-sm text-gray-500 uppercase tracking-wider font-medium font-mono">Total Models {modeFilter ? '(Filtered)' : ''}</div>
                 <div className="text-xl md:text-2xl text-accent mb-1 leading-none font-mono">
-                  {totalModels.toLocaleString()}
+                  {statsModels.length.toLocaleString()}
                 </div>
               </div>
               <div className="text-center py-4 md:py-5 px-6">
@@ -217,13 +279,13 @@ export default async function ProviderPage({ params, searchParams }: PageProps) 
             {modeFilter ? `${decodeURIComponent(modeFilter).charAt(0).toUpperCase() + decodeURIComponent(modeFilter).slice(1).replace(/_/g, ' ')} Models` : `All ${formatProviderName(decodedProvider)} Models`}
           </h2>
           <p className="text-gray-600 text-sm">
-            {modeFilter ? `Showing ${models.length} ${decodeURIComponent(modeFilter)} models from ${formatProviderName(decodedProvider)}` : `Click on any model to view details`}
+            {modeFilter ? `Showing ${statsModels.length} ${decodeURIComponent(modeFilter)} models (and ${totalModels - statsModels.length} others)` : `Click on any model to view details`}
             {modeFilter && (
               <a
                 href={`/provider/${encodeURIComponent(decodedProvider)}`}
                 className="ml-2 text-accent hover:underline"
               >
-                (Show all models)
+                (Clear filter)
               </a>
             )}
           </p>
@@ -235,6 +297,7 @@ export default async function ProviderPage({ params, searchParams }: PageProps) 
           searchScope="all"
           searchProvider={decodedProvider}
           serverPaginationContainerId="provider-pagination"
+          highlightMode={highlightMode}
         />
         {totalModels > PAGE_SIZE && (
           <div id="provider-pagination">

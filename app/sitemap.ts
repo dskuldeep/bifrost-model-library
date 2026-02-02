@@ -10,8 +10,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       : 'http://localhost:3000');
 
   const modelsData = await fetchAllModels();
-  const models = processModels(modelsData);
-  const providers = getAllProviders(modelsData);
+  const models = processModels(modelsData, true);
+  const providers = getAllProviders(modelsData, true);
 
   const sitemapEntries: MetadataRoute.Sitemap = [];
 

@@ -17,10 +17,10 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   });
 
   return {
-    title: 'AI Model Library - Explore Providers and Capabilities',
+    title: 'Bifrost AI Model Library - Explore Providers and Capabilities',
     description:
       'Browse AI models across providers. Compare capabilities, context limits, and pricing details for chat, image generation, audio, and more.',
-    keywords: 'AI model library, model catalog, AI providers, model capabilities, model pricing',
+    keywords: 'Bifrost AI Model Library, model catalog, AI providers, model capabilities, model pricing',
     alternates: {
       canonical,
     },
@@ -50,7 +50,7 @@ export default async function HomePage({ searchParams }: PageProps) {
   }, {} as Record<string, typeof models>);
 
   // Filter out providers with 0 models
-  const providersWithModels = providers.filter(provider => 
+  const providersWithModels = providers.filter(provider =>
     (modelsByProvider[provider]?.length || 0) > 0
   );
 
@@ -61,7 +61,7 @@ export default async function HomePage({ searchParams }: PageProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
           <div className="text-center">
             <span className="provider-badge">
-               [ AI MODEL LIBRARY ]
+              [ BIFROST AI MODEL LIBRARY ]
             </span>
             <h1 className="text-4xl md:text-5xl font-normal text-gray-900 mb-4 leading-[1.2] tracking-tight text-center">
               Explore AI Models Across Providers
@@ -82,23 +82,23 @@ export default async function HomePage({ searchParams }: PageProps) {
           <div className="border-t border-b border-gray-200 max-w-2xl w-full">
             <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-200">
               <div className="text-center py-4 md:py-5 px-6">
-              <div className="text-sm text-gray-500 uppercase tracking-wider font-medium font-mono">Models</div>
+                <div className="text-sm text-gray-500 uppercase tracking-wider font-medium font-mono">Models</div>
 
                 <div className="text-xl md:text-2xl text-accent mb-1 leading-none font-mono">
                   {models.length.toLocaleString()}
                 </div>
-                
+
               </div>
               <div className="text-center py-4 md:py-5 px-6">
-              <div className="text-sm text-gray-500 uppercase tracking-wider font-medium font-mono">Providers</div>
+                <div className="text-sm text-gray-500 uppercase tracking-wider font-medium font-mono">Providers</div>
 
                 <div className="text-xl md:text-2xl text-accent mb-1 leading-none font-mono">
                   {providers.length}
                 </div>
-                
+
               </div>
               <div className="text-center py-4 md:py-5 px-6">
-              <div className="text-sm text-gray-500 uppercase tracking-wider font-medium font-mono">Modes</div>
+                <div className="text-sm text-gray-500 uppercase tracking-wider font-medium font-mono">Modes</div>
                 <div className="text-xl md:text-2xl text-accent mb-1 leading-none font-mono">
                   {modes.length}
                 </div>

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import ModelCompare from '@/components/ModelCompare';
 import { buildCanonicalUrl } from '@/lib/seo';
 import { fetchAllModels, getModelBySlug, processModels } from '@/lib/api';
+import { isProviderWhitelisted } from '@/config/providers';
 
 export const dynamic = 'force-static';
 export const revalidate = 3600;
@@ -59,12 +60,17 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   }
 
   const canonical = buildCanonicalUrl(`/compare/${encodeURIComponent(model.provider)}/${model.slug}`);
+  const isIndexed = isProviderWhitelisted(model.provider);
 
   return {
     title: `Compare ${model.displayName} with other models`,
     description: `Compare pricing, limits, and capabilities of ${model.displayName} with other models.`,
     alternates: {
       canonical,
+    },
+    robots: {
+      index: isIndexed,
+      follow: true,
     },
   };
 }

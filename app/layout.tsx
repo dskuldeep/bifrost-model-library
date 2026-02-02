@@ -17,24 +17,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.getmaxim.ai/bifrost/model-library'),
   title: {
-    default: 'AI Model Library - Explore Providers and Capabilities',
-    template: '%s | AI Model Library',
+    default: 'Bifrost AI Model Library - Explore Providers and Capabilities',
+    template: '%s | Bifrost AI Model Library',
   },
   description: 'Browse AI models across providers. Compare capabilities, context limits, and pricing details.',
-  keywords: ['AI model library', 'model catalog', 'AI providers', 'model capabilities', 'model pricing'],
-  authors: [{ name: 'AI Model Library' }],
+  keywords: ['Bifrost AI Model Library', 'model catalog', 'AI providers', 'model capabilities', 'model pricing'],
+  authors: [{ name: 'Bifrost AI Model Library' }],
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: 'https://www.getmaxim.ai/bifrost/model-library',
-    siteName: 'AI Model Library',
-    title: 'AI Model Library - Explore Providers and Capabilities',
+    siteName: 'Bifrost AI Model Library',
+    title: 'Bifrost AI Model Library - Explore Providers and Capabilities',
     description: 'Browse AI models across providers. Compare capabilities, context limits, and pricing details.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AI Model Library',
+    title: 'Bifrost AI Model Library',
     description: 'Browse AI models across providers. Compare capabilities, context limits, and pricing details.',
   },
   robots: {

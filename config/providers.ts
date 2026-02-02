@@ -40,9 +40,7 @@ export const PROVIDER_METADATA: Record<string, ProviderMetadata> = {
   // Popular API Providers
   together_ai: { displayName: 'Together AI', logo: 'together.svg' },
   fireworks_ai: { displayName: 'Fireworks AI', logo: 'fireworks.svg' },
-  replicate: { displayName: 'Replicate', logo: 'replicate.svg' },
   groq: { displayName: 'Groq', logo: 'groq.svg' },
-  deepseek: { displayName: 'DeepSeek', logo: 'deepseek.svg' },
 
   // Specialized Providers
   cohere: { displayName: 'Cohere', logo: 'cohere.svg' },

@@ -1,4 +1,4 @@
-# AI Model Library
+# Bifrost AI Model Library
 
 A comprehensive Next.js application for browsing AI models across providers. Built with server-side rendering (SSR) for optimal SEO performance.
 

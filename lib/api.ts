@@ -22,12 +22,12 @@ function toTitleCase(str: string): string {
       if (word === word.toUpperCase() && word.length > 1 && /^[A-Z]+$/.test(word)) {
         return word;
       }
-      
+
       // If word contains numbers or special chars, capitalize first letter only
       if (/[0-9]/.test(word) || /[._-]/.test(word)) {
         return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
       }
-      
+
       // Standard title case: capitalize first letter, lowercase rest
       return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
     })
@@ -53,13 +53,13 @@ function normalizeCostPerToken(cost: number | undefined): number | undefined {
   if (!isValidNumber(cost) || cost === undefined) {
     return undefined;
   }
-  
+
   // If cost is >= 0.001, it's likely already per-million-token format
   // Normalize it to per-token format by dividing by 1 million
   if (cost >= 0.001) {
     return cost / 1000000;
   }
-  
+
   // Otherwise, assume it's already in per-token format
   return cost;
 }
@@ -69,11 +69,11 @@ export async function fetchAllModels(): Promise<ModelEntry> {
     const response = await fetch(BIFROST_API_URL, {
       next: { revalidate: 3600 }, // Revalidate every hour
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch models: ${response.statusText}`);
     }
-    
+
     const data: ModelEntry = await response.json();
     return data;
   } catch (error) {
@@ -82,7 +82,7 @@ export async function fetchAllModels(): Promise<ModelEntry> {
   }
 }
 
-export function processModels(models: ModelEntry, filterWhitelist: boolean = true): ProcessedModel[] {
+export function processModels(models: ModelEntry, filterWhitelist: boolean = false): ProcessedModel[] {
   return Object.entries(models)
     .map(([id, data]) => {
       // Extract model name from ID (e.g., "openai/gpt-4" -> "gpt-4")
@@ -148,7 +148,7 @@ export function processModels(models: ModelEntry, filterWhitelist: boolean = tru
     .filter((model): model is ProcessedModel => model !== null);
 }
 
-export function getModelById(models: ModelEntry, modelId: string, filterWhitelist: boolean = true): ProcessedModel | null {
+export function getModelById(models: ModelEntry, modelId: string, filterWhitelist: boolean = false): ProcessedModel | null {
   const modelData = models[modelId];
   if (!modelData) return null;
 
@@ -190,21 +190,21 @@ export function getModelById(models: ModelEntry, modelId: string, filterWhitelis
 export function getModelBySlug(models: ModelEntry, slug: string, provider?: string): ProcessedModel | null {
   // Search for model by slug (model name) and optionally by provider
   const lowerSlug = slug.toLowerCase();
-  
+
   for (const [id, data] of Object.entries(models)) {
     // Extract model name from ID
     const parts = id.split('/');
     const modelName = parts[parts.length - 1];
     // Replace both : and @ with - to match slug generation
     const modelSlug = modelName.replace(/[:@]/g, '-').toLowerCase();
-    
+
     // Match slug and optionally provider
     if (modelSlug === lowerSlug) {
       // If provider is specified, it must match
       if (provider && data.provider.toLowerCase() !== provider.toLowerCase()) {
         continue;
       }
-      
+
       const model = getModelById(models, id);
       // getModelById already filters out invalid models
       if (model) {
@@ -212,13 +212,13 @@ export function getModelBySlug(models: ModelEntry, slug: string, provider?: stri
       }
     }
   }
-  
+
   return null;
 }
 
 export function getModelsByName(models: ModelEntry, modelName: string): ProcessedModel[] {
   const processed = processModels(models);
-  return processed.filter(model => 
+  return processed.filter(model =>
     model.name.toLowerCase() === modelName.toLowerCase() ||
     model.displayName.toLowerCase() === modelName.toLowerCase()
   );
@@ -226,24 +226,24 @@ export function getModelsByName(models: ModelEntry, modelName: string): Processe
 
 export function getModelsByDisplayName(models: ModelEntry, displayName: string): ProcessedModel[] {
   const processed = processModels(models);
-  return processed.filter(model => 
+  return processed.filter(model =>
     model.displayName.toLowerCase() === displayName.toLowerCase()
   );
 }
 
 export function getModelsByProvider(models: ModelEntry, provider: string): ProcessedModel[] {
-  return processModels(models).filter(model => 
+  return processModels(models).filter(model =>
     model.provider.toLowerCase() === provider.toLowerCase()
   );
 }
 
 export function getModelsByMode(models: ModelEntry, mode: string): ProcessedModel[] {
-  return processModels(models).filter(model => 
+  return processModels(models).filter(model =>
     model.data.mode === mode
   );
 }
 
-export function getAllProviders(models: ModelEntry, filterWhitelist: boolean = true): string[] {
+export function getAllProviders(models: ModelEntry, filterWhitelist: boolean = false): string[] {
   // First, get all valid models (with names and pricing), optionally filtered by whitelist
   const validModels = processModels(models, filterWhitelist);
 
@@ -260,7 +260,7 @@ export function getAllProviders(models: ModelEntry, filterWhitelist: boolean = t
 export function getAllModes(models: ModelEntry): string[] {
   // Use processed models to ensure we only count modes from valid models
   const validModels = processModels(models);
-  
+
   // Get unique modes from valid models only, filtering out empty/invalid modes
   // Count all modes that exist in the processed models (not just those in ModelMode type)
   // This ensures the count matches what's displayed in the UI

@@ -21,6 +21,8 @@ interface ModelsTableProps {
   searchProvider?: string;
   // IDs of server pagination wrappers to hide when client-side search is active.
   serverPaginationContainerId?: string;
+  // Mode to prioritize in sorting (e.g. for provider pages with filter)
+  highlightMode?: string;
 }
 
 export default function ModelsTable({
@@ -30,6 +32,7 @@ export default function ModelsTable({
   searchScope = 'page',
   searchProvider,
   serverPaginationContainerId,
+  highlightMode,
 }: ModelsTableProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -147,9 +150,9 @@ export default function ModelsTable({
     }
 
     const query = searchQuery.toLowerCase();
-    const suggestions: Array<{ 
-      type: 'model' | 'provider' | 'mode'; 
-      value: string; 
+    const suggestions: Array<{
+      type: 'model' | 'provider' | 'mode';
+      value: string;
       display: string;
       subtitle?: string;
       model?: ProcessedModel;
@@ -167,7 +170,7 @@ export default function ModelsTable({
 
     // Add model name suggestions
     const matchingModels = baseModels
-      .filter(model => 
+      .filter(model =>
         model.displayName.toLowerCase().includes(query) ||
         model.id.toLowerCase().includes(query)
       );
@@ -175,11 +178,11 @@ export default function ModelsTable({
     // If there are multiple models with the same name, show them separately with distinguishing info
     const modelMatches: typeof suggestions = [];
     const seenNames = new Set<string>();
-    
+
     matchingModels.forEach(model => {
       const sameNameModels = modelsByName.get(model.displayName) || [];
       const hasMultipleVariants = sameNameModels.length > 1;
-      
+
       if (hasMultipleVariants) {
         // Show each variant separately with provider/mode info
         if (!seenNames.has(model.displayName)) {
@@ -390,8 +393,16 @@ export default function ModelsTable({
     });
 
     list.sort((a, b) => {
+      // Prioritize highlightMode if present
+      if (highlightMode) {
+        const aMatch = a.data.mode === highlightMode;
+        const bMatch = b.data.mode === highlightMode;
+        if (aMatch && !bMatch) return -1;
+        if (!aMatch && bMatch) return 1;
+      }
+
       let comparison = 0;
-      
+
       switch (sortBy) {
         case 'name':
           comparison = a.displayName.localeCompare(b.displayName);
@@ -403,12 +414,12 @@ export default function ModelsTable({
           comparison = getSortablePrice(a) - getSortablePrice(b);
           break;
       }
-      
+
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
     return list;
-  }, [baseModels, searchQuery, selectedProvider, selectedMode, sortBy, sortOrder]);
+  }, [baseModels, searchQuery, selectedProvider, selectedMode, sortBy, sortOrder, highlightMode]);
 
   // Client paging only when we have the full index loaded and search/filters are active.
   const PAGE_SIZE = 100;
@@ -423,9 +434,9 @@ export default function ModelsTable({
   const currentClientPage = Math.min(Math.max(1, clientPage), totalClientPages);
   const pagedDisplayedModels = clientPagingEnabled
     ? filteredAndSortedModels.slice(
-        (currentClientPage - 1) * PAGE_SIZE,
-        currentClientPage * PAGE_SIZE
-      )
+      (currentClientPage - 1) * PAGE_SIZE,
+      currentClientPage * PAGE_SIZE
+    )
     : filteredAndSortedModels;
 
   const handleSort = (column: typeof sortBy) => {
@@ -480,23 +491,19 @@ export default function ModelsTable({
                     type="button"
                     onClick={() => handleSuggestionClick(suggestion)}
                     onMouseEnter={() => setFocusedIndex(index)}
-                    className={`w-full text-left px-4 py-2 hover:bg-accent-light transition-colors ${
-                      index === focusedIndex ? 'bg-accent-light' : ''
-                    } ${
-                      index === 0 ? 'rounded-t-lg' : ''
-                    } ${
-                      index === searchSuggestions.length - 1 ? 'rounded-b-lg' : ''
-                    }`}
+                    className={`w-full text-left px-4 py-2 hover:bg-accent-light transition-colors ${index === focusedIndex ? 'bg-accent-light' : ''
+                      } ${index === 0 ? 'rounded-t-lg' : ''
+                      } ${index === searchSuggestions.length - 1 ? 'rounded-b-lg' : ''
+                      }`}
                   >
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
-                        <span className={`text-xs px-2 py-0.5 rounded ${
-                          suggestion.type === 'model' ? 'bg-blue-100 text-blue-700' :
-                          suggestion.type === 'provider' ? 'bg-green-100 text-green-700' :
-                          'bg-purple-100 text-purple-700'
-                        }`}>
+                        <span className={`text-xs px-2 py-0.5 rounded ${suggestion.type === 'model' ? 'bg-blue-100 text-blue-700' :
+                            suggestion.type === 'provider' ? 'bg-green-100 text-green-700' :
+                              'bg-purple-100 text-purple-700'
+                          }`}>
                           {suggestion.type === 'model' ? 'Model' :
-                           suggestion.type === 'provider' ? 'Provider' : 'Mode'}
+                            suggestion.type === 'provider' ? 'Provider' : 'Mode'}
                         </span>
                         <span className="text-gray-900 font-medium">{suggestion.display}</span>
                       </div>
@@ -511,7 +518,7 @@ export default function ModelsTable({
               </div>
             )}
           </div>
-          
+
           {/* Provider Filter */}
           {!hideProviderFilter && (
             <Dropdown
@@ -528,7 +535,7 @@ export default function ModelsTable({
               showAllOption={true}
             />
           )}
-          
+
           {/* Mode Filter */}
           <Dropdown
             options={modes.map(mode => ({
@@ -544,7 +551,7 @@ export default function ModelsTable({
             showAllOption={true}
           />
         </div>
-        
+
         {/* Results count */}
         <div className="text-sm text-gray-600">
           {loadingAllModels && searchScope === 'all' && searchActive ? (
@@ -625,7 +632,7 @@ export default function ModelsTable({
                 const pricingLines = getPricingLines(model);
 
                 const modelUrl = `/compare/${encodeURIComponent(model.provider)}/${model.slug}`;
-                
+
                 return (
                   <tr
                     key={model.id}
@@ -706,36 +713,36 @@ export default function ModelsTable({
                     <td className="min-w-[140px] sm:min-w-[160px] lg:w-[19%] p-0">
                       <Link href={modelUrl} target="_blank" rel="noopener noreferrer" className="block w-full h-full px-3 sm:px-4 pr-4 py-3 sm:py-4">
                         <div className="flex flex-wrap gap-1">
-                        {model.data.supports_function_calling && (
-                          <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded whitespace-nowrap">
-                            Functions
-                          </span>
-                        )}
-                        {model.data.supports_vision && (
-                          <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded whitespace-nowrap">
-                            Vision
-                          </span>
-                        )}
-                        {model.data.supports_reasoning && (
-                          <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded whitespace-nowrap">
-                            Reasoning
-                          </span>
-                        )}
-                        {model.data.supports_web_search && (
-                          <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded whitespace-nowrap">
-                            Web Search
-                          </span>
-                        )}
-                        {model.data.supports_audio_input && (
-                          <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded whitespace-nowrap">
-                            Audio In
-                          </span>
-                        )}
-                        {model.data.supports_audio_output && (
-                          <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded whitespace-nowrap">
-                            Audio Out
-                          </span>
-                        )}
+                          {model.data.supports_function_calling && (
+                            <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded whitespace-nowrap">
+                              Functions
+                            </span>
+                          )}
+                          {model.data.supports_vision && (
+                            <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded whitespace-nowrap">
+                              Vision
+                            </span>
+                          )}
+                          {model.data.supports_reasoning && (
+                            <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded whitespace-nowrap">
+                              Reasoning
+                            </span>
+                          )}
+                          {model.data.supports_web_search && (
+                            <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded whitespace-nowrap">
+                              Web Search
+                            </span>
+                          )}
+                          {model.data.supports_audio_input && (
+                            <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded whitespace-nowrap">
+                              Audio In
+                            </span>
+                          )}
+                          {model.data.supports_audio_output && (
+                            <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded whitespace-nowrap">
+                              Audio Out
+                            </span>
+                          )}
                         </div>
                       </Link>
                     </td>
@@ -745,7 +752,7 @@ export default function ModelsTable({
             </tbody>
           </table>
         </div>
-        
+
         {pagedDisplayedModels.length === 0 && (
           <div className="px-6 py-12 text-center text-gray-500">
             {allModelsError ? `Failed to load models: ${allModelsError}` : 'No models found matching your criteria.'}
